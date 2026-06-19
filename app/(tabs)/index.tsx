@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Alert,
+  StyleSheet, SafeAreaView, Alert, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
 import { Colors } from '../../constants/Colors';
 import { Fonts } from '../../constants/Fonts';
-import { events, PARTY_TYPES } from '../../constants/Data';
+import { PARTY_TYPES } from '../../constants/Data';
 import type { Event } from '../../constants/Data';
 import { useApp } from '../../context/AppContext';
+import { getDistanceKm, formatDistance } from '../../utils/distance';
 
 const FILTERS = ['ALL', ...PARTY_TYPES];
 
-function EventPost({ event, onOpenEvent }: { event: Event; onOpenEvent: () => void }) {
+function EventPost({
+  event, distanceLabel, onOpenEvent,
+}: { event: Event; distanceLabel: string; onOpenEvent: () => void }) {
   const { hosts, toggleHostFollow, people } = useApp();
   const router = useRouter();
   const host = hosts.find(h => h.id === event.hostId);
@@ -21,7 +25,6 @@ function EventPost({ event, onOpenEvent }: { event: Event; onOpenEvent: () => vo
   return (
     <View style={[styles.post, event.isHot && styles.postHot]}>
 
-      {/* Host header — like an IG post header */}
       <View style={styles.postHeader}>
         <TouchableOpacity style={styles.hostRow} activeOpacity={0.7}>
           <View style={[styles.hostAv, { backgroundColor: host?.color ?? Colors.surface2 }]}>
@@ -29,7 +32,7 @@ function EventPost({ event, onOpenEvent }: { event: Event; onOpenEvent: () => vo
           </View>
           <View>
             <Text style={styles.hostName}>{host?.name ?? event.venue}</Text>
-            <Text style={styles.hostMeta}>{event.distance} · {event.time}</Text>
+            <Text style={styles.hostMeta}>{distanceLabel} · {event.time}</Text>
           </View>
         </TouchableOpacity>
         {host && (
@@ -44,7 +47,6 @@ function EventPost({ event, onOpenEvent }: { event: Event; onOpenEvent: () => vo
         )}
       </View>
 
-      {/* Video body */}
       <TouchableOpacity style={styles.thumb} onPress={onOpenEvent} activeOpacity={0.92}>
         <Text style={styles.thumbLive}>● LIVE</Text>
         <View style={styles.scoreBadge}>
@@ -58,7 +60,6 @@ function EventPost({ event, onOpenEvent }: { event: Event; onOpenEvent: () => vo
         </View>
       </TouchableOpacity>
 
-      {/* Caption area */}
       <TouchableOpacity style={styles.cardBody} onPress={onOpenEvent} activeOpacity={0.92}>
         <Text style={styles.cardName}>{event.name}</Text>
         <View style={styles.tagRow}>
@@ -68,7 +69,6 @@ function EventPost({ event, onOpenEvent }: { event: Event; onOpenEvent: () => vo
         </View>
       </TouchableOpacity>
 
-      {/* Friends going row */}
       {goingFriends.length > 0 && (
         <TouchableOpacity
           style={styles.friendsRow}
@@ -82,10 +82,7 @@ function EventPost({ event, onOpenEvent }: { event: Event; onOpenEvent: () => vo
         >
           <View style={styles.avStack}>
             {goingFriends.slice(0, 3).map((f, i) => (
-              <View
-                key={f.id}
-                style={[styles.stackAv, { backgroundColor: f.color, marginLeft: i === 0 ? 0 : -8 }]}
-              >
+              <View key={f.id} style={[styles.stackAv, { backgroundColor: f.color, marginLeft: i === 0 ? 0 : -8 }]}>
                 <Text style={styles.stackAvTxt}>{f.initial}</Text>
               </View>
             ))}
@@ -101,7 +98,36 @@ function EventPost({ event, onOpenEvent }: { event: Event; onOpenEvent: () => vo
 
 export default function HomeScreen() {
   const [activeFilter, setActiveFilter] = useState('ALL');
+  const { events } = useApp();
   const router = useRouter();
+
+  const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const [locStatus, setLocStatus] = useState<'loading' | 'granted' | 'denied'>('loading');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setLocStatus('denied');
+          return;
+        }
+        const pos = await Location.getCurrentPositionAsync({});
+        setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocStatus('granted');
+      } catch {
+        setLocStatus('denied');
+      }
+    })();
+  }, []);
+
+  function distanceFor(event: Event): string {
+    if (userLoc) {
+      const km = getDistanceKm(userLoc.lat, userLoc.lng, event.latitude, event.longitude);
+      return formatDistance(km);
+    }
+    return event.distance;
+  }
 
   const filtered = activeFilter === 'ALL'
     ? events.filter(e => !e.isAfterParty)
@@ -114,7 +140,11 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.headerTitle}>TONIGHT</Text>
-            <Text style={styles.headerSub}>ABUJA · FRI 24 OCT</Text>
+            <Text style={styles.headerSub}>
+              {locStatus === 'loading' ? 'FINDING YOUR LOCATION...' :
+               locStatus === 'granted' ? 'ABUJA · LIVE DISTANCE ON' :
+               'ABUJA · LOCATION OFF'}
+            </Text>
           </View>
           <View style={styles.liveBadge}>
             <View style={styles.liveDot} />
@@ -139,6 +169,7 @@ export default function HomeScreen() {
             <EventPost
               key={event.id}
               event={event}
+              distanceLabel={distanceFor(event)}
               onOpenEvent={() => router.push(`/event/${event.id}`)}
             />
           ))}

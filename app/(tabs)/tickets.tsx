@@ -2,16 +2,11 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Fonts } from '../../constants/Fonts';
-
-const myTickets = [
-  { id: 't1', event: 'FOMO VOL. 1', venue: 'Muse Events Space', date: 'FRI 24 OCT · 10PM', type: 'Regular Admission', ref: '#FM-8847' },
-];
-
-const preOrders = [
-  { id: 'p1', event: 'FOMO NETWORK LAUNCH', date: 'DATE TBC' },
-];
+import { useApp } from '../../context/AppContext';
 
 export default function TicketsScreen() {
+  const { myTickets, events } = useApp();
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -22,45 +17,38 @@ export default function TicketsScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>MY TICKETS</Text>
-          {myTickets.map(t => (
-            <View key={t.id} style={styles.ticketCard}>
-              <View style={styles.ticketTop}>
-                <View style={styles.validBadge}><Text style={styles.validTxt}>✓ VALID</Text></View>
-              </View>
-              <Text style={styles.ticketEvent}>{t.event}</Text>
-              <Text style={styles.ticketVenue}>{t.venue}</Text>
-              <Text style={styles.ticketDate}>{t.date}</Text>
-              <View style={styles.ticketDivider}>
-                <View style={styles.cutoutL} />
-                <View style={styles.dashedLine} />
-                <View style={styles.cutoutR} />
-              </View>
-              <View style={styles.qrArea}>
-                <View style={styles.qrBox}>
-                  <Text style={styles.qrPlaceholder}>{'██  ██\nQR CODE\n██  ██'}</Text>
+          {myTickets.length === 0 && (
+            <Text style={styles.emptyTxt}>No tickets yet. Buy one from any event page.</Text>
+          )}
+          {myTickets.map(t => {
+            const event = events.find(e => e.id === t.eventId);
+            if (!event) return null;
+            return (
+              <View key={t.id} style={styles.ticketCard}>
+                <View style={styles.ticketTop}>
+                  <View style={styles.validBadge}><Text style={styles.validTxt}>✓ VALID</Text></View>
                 </View>
-                <View style={styles.qrInfo}>
-                  <Text style={styles.qrName}>OLUWAFEMI A.</Text>
-                  <Text style={styles.qrType}>{t.type}</Text>
-                  <Text style={styles.qrRef}>{t.ref}</Text>
+                <Text style={styles.ticketEvent}>{event.name}</Text>
+                <Text style={styles.ticketVenue}>{event.venue}</Text>
+                <Text style={styles.ticketDate}>{event.time} · QTY {t.quantity}</Text>
+                <View style={styles.ticketDivider}>
+                  <View style={styles.cutoutL} />
+                  <View style={styles.dashedLine} />
+                  <View style={styles.cutoutR} />
+                </View>
+                <View style={styles.qrArea}>
+                  <View style={styles.qrBox}>
+                    <Text style={styles.qrPlaceholder}>{'██  ██\nQR CODE\n██  ██'}</Text>
+                  </View>
+                  <View style={styles.qrInfo}>
+                    <Text style={styles.qrName}>OLUWAFEMI A.</Text>
+                    <Text style={styles.qrType}>Ref: {t.reference}</Text>
+                    <Text style={styles.qrRef}>{new Date(t.purchasedAt).toLocaleDateString()}</Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>PRE-ORDERS</Text>
-          {preOrders.map(p => (
-            <View key={p.id} style={styles.preCard}>
-              <View>
-                <Text style={styles.preName}>{p.event}</Text>
-                <Text style={styles.preDate}>{p.date}</Text>
-              </View>
-              <View style={styles.preBadge}><Text style={styles.preBadgeTxt}>WAITING</Text></View>
-            </View>
-          ))}
-          <Text style={styles.preNote}>You'll be notified the moment a date is announced.</Text>
+            );
+          })}
         </View>
 
       </ScrollView>
@@ -76,6 +64,7 @@ const styles = S({
   headerTitle:   { fontSize: 30, fontFamily: Fonts.display, color: Colors.cream, letterSpacing: 2 },
   section:       { padding: 16, gap: 10, marginBottom: 4 },
   sectionLabel:  { fontSize: 10, fontFamily: Fonts.bodyBold, letterSpacing: 3, color: Colors.dim, marginBottom: 6 },
+  emptyTxt:      { fontSize: 11, fontFamily: Fonts.body, color: Colors.dim, lineHeight: 17 },
   ticketCard:    { backgroundColor: Colors.surface, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: Colors.border },
   ticketTop:     { backgroundColor: Colors.red, paddingHorizontal: 14, paddingVertical: 8, alignItems: 'flex-end' },
   validBadge:    {},
@@ -94,10 +83,4 @@ const styles = S({
   qrName:        { fontSize: 14, fontFamily: Fonts.bodyBold, color: Colors.cream },
   qrType:        { fontSize: 10, fontFamily: Fonts.body, color: Colors.mid, marginTop: 3 },
   qrRef:         { fontSize: 10, fontFamily: Fonts.body, color: Colors.dim, marginTop: 2 },
-  preCard:       { backgroundColor: Colors.surface, borderRadius: 5, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderLeftWidth: 2, borderLeftColor: Colors.dim },
-  preName:       { fontSize: 16, fontFamily: Fonts.display, color: Colors.cream },
-  preDate:       { fontSize: 10, fontFamily: Fonts.bodyMedium, color: Colors.dim, marginTop: 3 },
-  preBadge:      { borderWidth: 1, borderColor: Colors.border2, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 3 },
-  preBadgeTxt:   { fontSize: 9, fontFamily: Fonts.bodyBold, color: Colors.dim, letterSpacing: 1 },
-  preNote:       { fontSize: 10, fontFamily: Fonts.body, color: Colors.dim, lineHeight: 15 },
 });

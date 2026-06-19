@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '../../constants/Fonts';
+import { useApp } from '../../context/AppContext';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -9,6 +10,9 @@ function TabIcon({ name, color }: { name: IconName; color: string }) {
 }
 
 export default function TabLayout() {
+  const { userRole } = useApp();
+  const isPromoter = userRole === 'promoter';
+
   return (
     <Tabs
       screenOptions={{
@@ -24,9 +28,9 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#CC2929',
         tabBarInactiveTintColor: '#5C5A56',
         tabBarLabelStyle: {
-          fontSize: 9,
+          fontSize: 8,
           fontFamily: Fonts.bodyBold,
-          letterSpacing: 0.8,
+          letterSpacing: 0.5,
           textTransform: 'uppercase',
           marginTop: 2,
         },
@@ -37,8 +41,20 @@ export default function TabLayout() {
         options={{ title: 'Tonight', tabBarIcon: ({ color }) => <TabIcon name="home" color={color} /> }}
       />
       <Tabs.Screen
+        name="map"
+        options={{ title: 'Map', tabBarIcon: ({ color }) => <TabIcon name="location" color={color} /> }}
+      />
+      <Tabs.Screen
         name="discover"
-        options={{ title: 'Find', tabBarIcon: ({ color }) => <TabIcon name="search" color={color} /> }}
+        options={{ title: 'Clips', tabBarIcon: ({ color }) => <TabIcon name="videocam" color={color} /> }}
+      />
+      <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: 'Dashboard',
+          tabBarIcon: ({ color }) => <TabIcon name="stats-chart" color={color} />,
+          href: isPromoter ? undefined : null,
+        }}
       />
       <Tabs.Screen
         name="tickets"

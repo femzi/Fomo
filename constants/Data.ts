@@ -1,14 +1,9 @@
 // ── PARTY TYPES ──────────────────────────────────────────
-// This is the primary way events are differentiated now —
-// not music genre. Music is still stored as a detail field.
 export type PartyType = 'CLUB' | 'HOUSE PARTY' | 'CLASSY' | 'ROOFTOP' | 'POOL PARTY';
 
 export const PARTY_TYPES: PartyType[] = ['CLUB', 'HOUSE PARTY', 'CLASSY', 'ROOFTOP', 'POOL PARTY'];
 
 // ── HOSTS ────────────────────────────────────────────────
-// Venues and event promoters are followable accounts, like
-// an Instagram page. isFollowing is the SEED value — the
-// live, toggleable state lives in AppContext.
 export type Host = {
   id: string;
   name: string;
@@ -27,9 +22,6 @@ export const hosts: Host[] = [
 ];
 
 // ── PEOPLE ───────────────────────────────────────────────
-// Real users on the platform you can follow/add and chat
-// with. isFollowing is the SEED value — live state in
-// AppContext.
 export type Person = {
   id: string;
   name: string;
@@ -57,7 +49,9 @@ export type Event = {
   score: number;
   crowd: string;
   crowdLevel: 'quiet' | 'filling' | 'packed';
-  distance: string;
+  distance: string;       // fallback string, used only if live location is unavailable
+  latitude: number;
+  longitude: number;
   entry: string;
   avgSpend: string;
   music: string;
@@ -68,6 +62,8 @@ export type Event = {
   isAfterParty?: boolean;
   friendsGoingIds: string[];
   conversationId?: string;
+  ticketsSold: number;
+  ticketsTotal: number;
 };
 
 export const events: Event[] = [
@@ -81,6 +77,8 @@ export const events: Event[] = [
     crowd: '🔴 Ramping Up',
     crowdLevel: 'filling',
     distance: '1.8km away',
+    latitude: 9.0610,
+    longitude: 7.4530,
     entry: '₦5,000',
     avgSpend: '~₦15,000',
     music: 'Afrobeats / Drill',
@@ -90,6 +88,8 @@ export const events: Event[] = [
     isHot: true,
     friendsGoingIds: ['p1', 'p2', 'p3'],
     conversationId: 'c1',
+    ticketsSold: 312,
+    ticketsTotal: 450,
   },
   {
     id: '2',
@@ -101,6 +101,8 @@ export const events: Event[] = [
     crowd: '🟡 Filling Up',
     crowdLevel: 'filling',
     distance: '2.3km away',
+    latitude: 9.0760,
+    longitude: 7.4310,
     entry: '₦3,000',
     avgSpend: '~₦10,000',
     music: 'House',
@@ -110,6 +112,8 @@ export const events: Event[] = [
     isHot: false,
     friendsGoingIds: ['p2', 'p3'],
     conversationId: 'c2',
+    ticketsSold: 96,
+    ticketsTotal: 250,
   },
   {
     id: '3',
@@ -121,6 +125,8 @@ export const events: Event[] = [
     crowd: '🟢 Just Starting',
     crowdLevel: 'quiet',
     distance: '0.9km away',
+    latitude: 9.0540,
+    longitude: 7.4890,
     entry: 'Free',
     avgSpend: '~₦8,000',
     music: 'Amapiano',
@@ -129,6 +135,8 @@ export const events: Event[] = [
     people: 58,
     isHot: false,
     friendsGoingIds: [],
+    ticketsSold: 40,
+    ticketsTotal: 150,
   },
   {
     id: '4',
@@ -140,6 +148,8 @@ export const events: Event[] = [
     crowd: '🟢 Just Starting',
     crowdLevel: 'quiet',
     distance: '4.1km away',
+    latitude: 9.0990,
+    longitude: 7.4050,
     entry: '₦2,000',
     avgSpend: '~₦8,000',
     music: 'Afrobeats',
@@ -148,6 +158,8 @@ export const events: Event[] = [
     people: 42,
     isHot: false,
     friendsGoingIds: [],
+    ticketsSold: 18,
+    ticketsTotal: 120,
   },
   {
     id: '5',
@@ -159,6 +171,8 @@ export const events: Event[] = [
     crowd: '🔴 Packed',
     crowdLevel: 'packed',
     distance: '3.2km away',
+    latitude: 9.0400,
+    longitude: 7.4700,
     entry: '₦3,000',
     avgSpend: '~₦12,000',
     music: 'House / Amapiano',
@@ -168,6 +182,8 @@ export const events: Event[] = [
     isHot: true,
     isAfterParty: true,
     friendsGoingIds: ['p1'],
+    ticketsSold: 290,
+    ticketsTotal: 350,
   },
 ];
 
@@ -190,7 +206,6 @@ export type Conversation = {
   messages: Message[];
 };
 
-// SEED conversations — live state lives in AppContext.
 export const initialConversations: Conversation[] = [
   {
     id: 'c1',
@@ -231,3 +246,17 @@ export const initialConversations: Conversation[] = [
     ],
   },
 ];
+
+// ── CLIPS (TikTok-style video posts) ─────────────────────
+export type Clip = {
+  id: string;
+  hostId: string;
+  videoUri: string;
+  caption: string;
+  eventId?: string;
+  likes: number;
+  likedByMe: boolean;
+};
+
+// Starts empty — populated as people post from the Clips tab.
+export const initialClips: Clip[] = [];

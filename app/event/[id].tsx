@@ -1,20 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
   StyleSheet, SafeAreaView, Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Location from 'expo-location';
 import { Colors } from '../../constants/Colors';
 import { Fonts } from '../../constants/Fonts';
-import { events } from '../../constants/Data';
 import { useApp } from '../../context/AppContext';
+import { getDistanceKm, formatDistance } from '../../utils/distance';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { events, hosts, toggleHostFollow, people } = useApp();
   const event = events.find(e => e.id === id);
   const [going, setGoing] = useState(false);
-  const { hosts, toggleHostFollow, people } = useApp();
+  const [liveDistance, setLiveDistance] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!event) return;
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const pos = await Location.getCurrentPositionAsync({});
+        const km = getDistanceKm(pos.coords.latitude, pos.coords.longitude, event.latitude, event.longitude);
+        setLiveDistance(formatDistance(km));
+      } catch {}
+    })();
+  }, [event?.id]);
 
   if (!event) {
     return (
@@ -26,6 +41,8 @@ export default function EventDetailScreen() {
 
   const host = hosts.find(h => h.id === event.hostId);
   const goingFriends = people.filter(p => event.friendsGoingIds.includes(p.id));
+  const soldOut = event.ticketsSold >= event.ticketsTotal;
+  const ticketsLeft = event.ticketsTotal - event.ticketsSold;
 
   const rows = [
     { label: 'TYPE',       value: event.partyType },
@@ -34,7 +51,7 @@ export default function EventDetailScreen() {
     { label: 'ENTRY',      value: event.entry },
     { label: 'AVG SPEND',  value: event.avgSpend },
     { label: 'DRESS CODE', value: event.dressCode },
-    { label: 'DISTANCE',   value: event.distance },
+    { label: 'DISTANCE',   value: liveDistance ?? event.distance },
     { label: 'MUSIC',      value: event.music },
   ];
 
@@ -66,7 +83,6 @@ export default function EventDetailScreen() {
             <Text style={styles.venueTxt}>{event.venue} · Abuja</Text>
           </View>
 
-          {/* Hosted by */}
           {host && (
             <View style={styles.hostCard}>
               <View style={styles.hostLeft}>
@@ -89,7 +105,6 @@ export default function EventDetailScreen() {
             </View>
           )}
 
-          {/* Friends going */}
           {goingFriends.length > 0 && (
             <TouchableOpacity
               style={styles.friendsCard}
@@ -134,6 +149,19 @@ export default function EventDetailScreen() {
             </View>
           </View>
 
+          {/* Ticket availability */}
+          <View style={styles.ticketCard}>
+            <View style={styles.ticketRow}>
+              <Text style={styles.ticketLabel}>TICKETS</Text>
+              <Text style={styles.ticketValue}>
+                {soldOut ? 'SOLD OUT' : `${ticketsLeft} left of ${event.ticketsTotal}`}
+              </Text>
+            </View>
+            <View style={styles.ticketTrack}>
+              <View style={[styles.ticketFill, { width: `${Math.min((event.ticketsSold / event.ticketsTotal) * 100, 100)}%` }]} />
+            </View>
+          </View>
+
           <View style={styles.detailBox}>
             {rows.map((row, i) => (
               <View key={row.label} style={[styles.row, i < rows.length - 1 && styles.rowBorder]}>
@@ -142,6 +170,14 @@ export default function EventDetailScreen() {
               </View>
             ))}
           </View>
+
+          <TouchableOpacity
+            style={[styles.buyBtn, soldOut && styles.buyBtnOff]}
+            onPress={() => !soldOut && router.push(`/checkout/${event.id}`)}
+            disabled={soldOut}
+          >
+            <Text style={styles.buyTxt}>{soldOut ? 'SOLD OUT' : 'BUY TICKET'}</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.cta, going && styles.ctaGoing]}
@@ -201,12 +237,25 @@ const styles = S({
   barLabel:    { fontSize: 9, fontFamily: Fonts.body, color: Colors.dim, width: 90 },
   barTrack:    { flex: 1, height: 3, backgroundColor: Colors.border, borderRadius: 2, overflow: 'hidden' },
   barFill:     { height: '100%', backgroundColor: Colors.red, borderRadius: 2 },
+
+  ticketCard:  { backgroundColor: Colors.surface, borderRadius: 6, padding: 14, gap: 8 },
+  ticketRow:   { flexDirection: 'row', justifyContent: 'space-between' },
+  ticketLabel: { fontSize: 9, fontFamily: Fonts.bodyBold, letterSpacing: 2, color: Colors.dim },
+  ticketValue: { fontSize: 12, fontFamily: Fonts.bodyBold, color: Colors.cream },
+  ticketTrack: { height: 6, backgroundColor: Colors.surface2, borderRadius: 3, overflow: 'hidden' },
+  ticketFill:  { height: '100%', backgroundColor: Colors.red },
+
   detailBox:   { backgroundColor: Colors.surface, borderRadius: 6, overflow: 'hidden' },
   row:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12 },
   rowBorder:   { borderBottomWidth: 1, borderBottomColor: Colors.surface2 },
   rowLabel:    { fontSize: 9, fontFamily: Fonts.bodyBold, letterSpacing: 2, color: Colors.dim },
   rowValue:    { fontSize: 12, fontFamily: Fonts.bodySemiBold, color: Colors.cream },
-  cta:         { backgroundColor: Colors.red, borderRadius: 5, padding: 18, alignItems: 'center', marginTop: 4 },
+
+  buyBtn:      { backgroundColor: Colors.cream, borderRadius: 5, padding: 16, alignItems: 'center' },
+  buyBtnOff:   { backgroundColor: Colors.surface2 },
+  buyTxt:      { fontSize: 15, fontFamily: Fonts.display, color: Colors.bg, letterSpacing: 2 },
+
+  cta:         { backgroundColor: Colors.red, borderRadius: 5, padding: 18, alignItems: 'center' },
   ctaGoing:    { backgroundColor: Colors.green },
   ctaTxt:      { fontSize: 18, fontFamily: Fonts.display, color: '#fff', letterSpacing: 3 },
 });

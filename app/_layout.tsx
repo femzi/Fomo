@@ -31,10 +31,12 @@ export default function RootLayout() {
   return (
     <AppProvider>
       <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0A0A0A' } }}>
+      <Stack initialRouteName="onboarding" screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0A0A0A' } }}>
+        <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="event/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="chat/[id]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="checkout/[id]" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </AppProvider>
   );
