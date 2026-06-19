@@ -1,44 +1,56 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Fonts } from '../../constants/Fonts';
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+function TabIcon({ name, color }: { name: IconName; color: string }) {
+  return <Ionicons name={name} size={20} color={color} />;
+}
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
+        tabBarStyle: {
+          backgroundColor: '#0A0A0A',
+          borderTopColor: '#272727',
+          borderTopWidth: 1,
+          height: 62,
+          paddingBottom: 10,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: '#CC2929',
+        tabBarInactiveTintColor: '#5C5A56',
+        tabBarLabelStyle: {
+          fontSize: 9,
+          fontFamily: Fonts.bodyBold,
+          letterSpacing: 0.8,
+          textTransform: 'uppercase',
+          marginTop: 2,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
+        options={{ title: 'Tonight', tabBarIcon: ({ color }) => <TabIcon name="home" color={color} /> }}
       />
       <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
+        name="discover"
+        options={{ title: 'Find', tabBarIcon: ({ color }) => <TabIcon name="search" color={color} /> }}
+      />
+      <Tabs.Screen
+        name="tickets"
+        options={{ title: 'Tickets', tabBarIcon: ({ color }) => <TabIcon name="ticket" color={color} /> }}
+      />
+      <Tabs.Screen
+        name="squad"
+        options={{ title: 'Chats', tabBarIcon: ({ color }) => <TabIcon name="chatbubbles" color={color} /> }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{ title: 'Me', tabBarIcon: ({ color }) => <TabIcon name="person" color={color} /> }}
       />
     </Tabs>
   );
