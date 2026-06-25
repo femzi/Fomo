@@ -3,26 +3,24 @@ import {
   View, Text, TouchableOpacity, TextInput,
   StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Colors } from '../constants/Colors';
 import { Fonts } from '../constants/Fonts';
 import { useApp } from '../context/AppContext';
+import FomoBadge from '../components/FomoBadge';
 
+// NOTE: this screen is rendered directly by the root layout's
+// onboarding gate, not navigated to as a route — so there's no
+// router.replace here. Calling becomeAttendee()/becomePromoter()
+// updates context state, which makes the gate swap straight to
+// the real app on its own.
 export default function OnboardingScreen() {
-  const router = useRouter();
   const { becomeAttendee, becomePromoter } = useApp();
   const [showVenueInput, setShowVenueInput] = useState(false);
   const [venueName, setVenueName] = useState('');
 
-  function chooseAttendee() {
-    becomeAttendee();
-    router.replace('/(tabs)');
-  }
-
   function confirmPromoter() {
     if (!venueName.trim()) return;
     becomePromoter(venueName.trim());
-    router.replace('/(tabs)');
   }
 
   return (
@@ -31,6 +29,7 @@ export default function OnboardingScreen() {
         <View style={styles.content}>
 
           <View style={styles.top}>
+            <FomoBadge size={84} />
             <Text style={styles.logo}>FOMO</Text>
             <Text style={styles.tagline}>THE NIGHT DOESN'T WAIT.</Text>
           </View>
@@ -39,7 +38,7 @@ export default function OnboardingScreen() {
             <View style={styles.choices}>
               <Text style={styles.question}>WHAT BRINGS YOU HERE?</Text>
 
-              <TouchableOpacity style={styles.card} onPress={chooseAttendee} activeOpacity={0.85}>
+              <TouchableOpacity style={styles.card} onPress={becomeAttendee} activeOpacity={0.85}>
                 <Text style={styles.cardIcon}>🔥</Text>
                 <Text style={styles.cardTitle}>I'M GOING OUT</Text>
                 <Text style={styles.cardSub}>Find tonight's parties, see what's popping, link up with friends</Text>
@@ -85,9 +84,9 @@ const S = StyleSheet.create;
 const styles = S({
   safe:           { flex: 1, backgroundColor: Colors.bg },
   content:        { flex: 1, justifyContent: 'space-between', padding: 24, paddingTop: 60, paddingBottom: 40 },
-  top:            { alignItems: 'center' },
-  logo:           { fontSize: 54, fontFamily: Fonts.display, color: Colors.cream, letterSpacing: 4 },
-  tagline:        { fontSize: 11, fontFamily: Fonts.bodyBold, color: Colors.dim, letterSpacing: 2, marginTop: 6 },
+  top:            { alignItems: 'center', gap: 4 },
+  logo:           { fontSize: 54, fontFamily: Fonts.display, color: Colors.cream, letterSpacing: 4, marginTop: 4 },
+  tagline:        { fontSize: 11, fontFamily: Fonts.bodyBold, color: Colors.dim, letterSpacing: 2, marginTop: 2 },
   choices:        { gap: 14 },
   question:       { fontSize: 13, fontFamily: Fonts.bodyBold, color: Colors.dim, letterSpacing: 2, textAlign: 'center', marginBottom: 6 },
   card:           { backgroundColor: Colors.surface, borderRadius: 10, padding: 22, borderWidth: 1, borderColor: Colors.border, gap: 6 },
