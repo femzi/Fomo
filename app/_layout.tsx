@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -10,9 +10,26 @@ import {
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import { AppProvider, useApp } from '../context/AppContext';
 import FomoBadge from '../components/FomoBadge';
-import OnboardingScreen from './onboarding';
+import AlarmOverlay from '../components/AlarmOverlay';
+import ProfileSetupScreen from './profile-setup';
+import LoginScreen from './login';
+import OnboardingIntroScreen from './onboarding-intro';
+
+// Stored separately from app data so resetting the app doesn't re-show onboarding
+const ONBOARDING_SEEN_KEY = 'fomo_seen_intro_v1';
+
+// Set up how notifications appear when the app is already open
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: false, // suppress banner if app is open — overlay handles it
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 function LoadingScreen() {
   const pulse = useRef(new Animated.Value(0)).current;
@@ -44,25 +61,61 @@ const loadingStyles = StyleSheet.create({
   tagline:  { fontSize: 11, fontWeight: '700', color: '#5C5A56', letterSpacing: 2 },
 });
 
-// Gate that decides what to show once fonts are ready and AppProvider
-// is live: onboarding if no role chosen yet, otherwise the real app.
-// This is a render-time decision, not a navigated route — that's what
-// makes it work reliably on web, where the URL "/" would otherwise
-// resolve straight to the tabs group and skip onboarding entirely.
+// Gate ordering (each check is a render-time decision, not a navigated route):
+// 1. Wait for fonts + storage to hydrate
+// 2. If first launch ever → show animated intro onboarding
+// 3. If no profile yet → show signup wizard
+// 4. If profile exists but logged out → show login
+// 5. Otherwise → show the real app
 function AppGate() {
-  const { userRole } = useApp();
+  const { hydrated, profile, isLoggedIn } = useApp();
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [seenOnboarding, setSeenOnboarding] = useState(false);
 
-  if (!userRole) {
-    return <OnboardingScreen />;
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_SEEN_KEY).then(val => {
+      setSeenOnboarding(!!val);
+      setOnboardingChecked(true);
+    });
+  }, []);
+
+  async function markOnboardingSeen() {
+    await AsyncStorage.setItem(ONBOARDING_SEEN_KEY, '1');
+    setSeenOnboarding(true);
+  }
+
+  if (!hydrated || !onboardingChecked) {
+    return <LoadingScreen />;
+  }
+
+  if (!seenOnboarding) {
+    return <OnboardingIntroScreen onDone={markOnboardingSeen} />;
+  }
+
+  if (!profile) {
+    return <ProfileSetupScreen />;
+  }
+
+  if (!isLoggedIn) {
+    return <LoginScreen />;
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0A0A0A' } }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="event/[id]" options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="chat/[id]" options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="checkout/[id]" options={{ animation: 'slide_from_right' }} />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0A0A0A' } }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="event/[id]"           options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="chat/[id]"            options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="checkout/[id]"        options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="person/[id]"          options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="event-clips/[id]"     options={{ animation: 'fade' }} />
+        <Stack.Screen name="notification-center"  options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="notifications"        options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="privacy"              options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="help"                 options={{ animation: 'slide_from_right' }} />
+      </Stack>
+      <AlarmOverlay />
+    </>
   );
 }
 

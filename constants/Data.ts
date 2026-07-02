@@ -28,18 +28,24 @@ export type Person = {
   initial: string;
   color: string;
   isFollowing: boolean;
+  friendIds: string[];
+  username: string;
+  fomoScore: number; // personal "vibe" rating, 0-100, everyone starts at 0
 };
 
 export const people: Person[] = [
-  { id: 'p1', name: 'Tunde Adesanya', initial: 'T', color: '#3A2A1A', isFollowing: true },
-  { id: 'p2', name: 'Shade Williams', initial: 'S', color: '#1A3A2A', isFollowing: true },
-  { id: 'p3', name: 'Kelechi Obi',    initial: 'K', color: '#2A1A3A', isFollowing: true },
-  { id: 'p4', name: 'Dayo Adewale',   initial: 'D', color: '#2A2A2A', isFollowing: false },
-  { id: 'p5', name: 'Amaka Nnamdi',   initial: 'A', color: '#3A1A2A', isFollowing: false },
-  { id: 'p6', name: 'Chidi Eze',      initial: 'C', color: '#1A2A3A', isFollowing: false },
+  { id: 'p1', name: 'Tunde Adesanya', initial: 'T', color: '#3A2A1A', isFollowing: true,  friendIds: ['p2', 'p3', 'p4'], username: 'tunde_a', fomoScore: 0 },
+  { id: 'p2', name: 'Shade Williams', initial: 'S', color: '#1A3A2A', isFollowing: true,  friendIds: ['p1', 'p3', 'p5'], username: 'shadewilliams', fomoScore: 0 },
+  { id: 'p3', name: 'Kelechi Obi',    initial: 'K', color: '#2A1A3A', isFollowing: true,  friendIds: ['p1', 'p2', 'p6'], username: 'kelechi.obi', fomoScore: 0 },
+  { id: 'p4', name: 'Dayo Adewale',   initial: 'D', color: '#2A2A2A', isFollowing: false, friendIds: ['p1', 'p5'], username: 'dayo_a', fomoScore: 0 },
+  { id: 'p5', name: 'Amaka Nnamdi',   initial: 'A', color: '#3A1A2A', isFollowing: false, friendIds: ['p2', 'p4', 'p6'], username: 'amaka.nnamdi', fomoScore: 0 },
+  { id: 'p6', name: 'Chidi Eze',      initial: 'C', color: '#1A2A3A', isFollowing: false, friendIds: ['p3', 'p5'], username: 'chidi_eze', fomoScore: 0 },
 ];
 
 // ── EVENTS ───────────────────────────────────────────────
+// NOTE: latitude/longitude are OPTIONAL — an event owner can post
+// an event first and add the exact location later. Every other
+// field is required at creation time.
 export type Event = {
   id: string;
   name: string;
@@ -49,12 +55,11 @@ export type Event = {
   score: number;
   crowd: string;
   crowdLevel: 'quiet' | 'filling' | 'packed';
-  distance: string;       // fallback string, used only if live location is unavailable
-  latitude: number;
-  longitude: number;
+  distance: string;
+  latitude?: number;
+  longitude?: number;
   entry: string;
   avgSpend: string;
-  music: string;
   time: string;
   dressCode: string;
   people: number;
@@ -64,6 +69,7 @@ export type Event = {
   conversationId?: string;
   ticketsSold: number;
   ticketsTotal: number;
+  scoreHistory: number[]; // tracks how the live score moved over time, for the analysis panel
 };
 
 export const events: Event[] = [
@@ -81,7 +87,6 @@ export const events: Event[] = [
     longitude: 7.4530,
     entry: '₦5,000',
     avgSpend: '~₦15,000',
-    music: 'Afrobeats / Drill',
     time: '10PM',
     dressCode: 'Smart Casual',
     people: 247,
@@ -90,6 +95,7 @@ export const events: Event[] = [
     conversationId: 'c1',
     ticketsSold: 312,
     ticketsTotal: 450,
+    scoreHistory: [],
   },
   {
     id: '2',
@@ -105,7 +111,6 @@ export const events: Event[] = [
     longitude: 7.4310,
     entry: '₦3,000',
     avgSpend: '~₦10,000',
-    music: 'House',
     time: '9PM',
     dressCode: 'Casual',
     people: 134,
@@ -114,6 +119,7 @@ export const events: Event[] = [
     conversationId: 'c2',
     ticketsSold: 96,
     ticketsTotal: 250,
+    scoreHistory: [],
   },
   {
     id: '3',
@@ -129,7 +135,6 @@ export const events: Event[] = [
     longitude: 7.4890,
     entry: 'Free',
     avgSpend: '~₦8,000',
-    music: 'Amapiano',
     time: '11PM',
     dressCode: 'Smart Casual',
     people: 58,
@@ -137,6 +142,7 @@ export const events: Event[] = [
     friendsGoingIds: [],
     ticketsSold: 40,
     ticketsTotal: 150,
+    scoreHistory: [],
   },
   {
     id: '4',
@@ -152,7 +158,6 @@ export const events: Event[] = [
     longitude: 7.4050,
     entry: '₦2,000',
     avgSpend: '~₦8,000',
-    music: 'Afrobeats',
     time: '9PM',
     dressCode: 'Casual',
     people: 42,
@@ -160,6 +165,7 @@ export const events: Event[] = [
     friendsGoingIds: [],
     ticketsSold: 18,
     ticketsTotal: 120,
+    scoreHistory: [],
   },
   {
     id: '5',
@@ -175,7 +181,6 @@ export const events: Event[] = [
     longitude: 7.4700,
     entry: '₦3,000',
     avgSpend: '~₦12,000',
-    music: 'House / Amapiano',
     time: '2AM',
     dressCode: 'Casual',
     people: 312,
@@ -184,16 +189,27 @@ export const events: Event[] = [
     friendsGoingIds: ['p1'],
     ticketsSold: 290,
     ticketsTotal: 350,
+    scoreHistory: [],
   },
 ];
 
 // ── MESSAGING ────────────────────────────────────────────
+export type CheckInResponse = {
+  personId: string; // 'me' for the current user
+  status: 'in' | 'out';
+};
+
 export type Message = {
   id: string;
   senderId: string;
   senderName: string;
   text: string;
   isSystem?: boolean;
+  sharedEventId?: string;       // present if this message is a shared event card
+  checkin?: {
+    deadline: number;           // timestamp — responses after this don't count
+    responses: CheckInResponse[];
+  };
 };
 
 export type Conversation = {
@@ -247,7 +263,29 @@ export const initialConversations: Conversation[] = [
   },
 ];
 
-// ── CLIPS (TikTok-style video posts) ─────────────────────
+// ── PHOTO PROFILE (Pinterest-style, attendee-only) ───────
+// These never appear in any feed — only visible by visiting the
+// person's own profile page directly.
+export type Photo = {
+  id: string;
+  authorId: string; // 'me' for the current user
+  uri: string;
+  caption?: string;
+};
+
+export const initialPhotos: Photo[] = [];
+
+// ── IN-APP NOTIFICATIONS ──────────────────────────────────
+export type AppNotification = {
+  id: string;
+  text: string;
+  ts: number;
+  read: boolean;
+};
+
+export const initialNotifications: AppNotification[] = [];
+
+// ── CLIPS (TikTok-style video posts, event owners only) ──
 export type Clip = {
   id: string;
   hostId: string;
@@ -258,5 +296,4 @@ export type Clip = {
   likedByMe: boolean;
 };
 
-// Starts empty — populated as people post from the Clips tab.
 export const initialClips: Clip[] = [];

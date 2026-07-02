@@ -9,9 +9,6 @@ type Props = {
   showRing?: boolean;
 };
 
-// The FOMO flame mark — pure vector, no font or external image needed.
-// Used on the loading screen, and reusable anywhere else a small
-// brand mark is needed (e.g. empty states, headers).
 export default function FomoBadge({
   size = 120,
   ringColor = Colors.red,
